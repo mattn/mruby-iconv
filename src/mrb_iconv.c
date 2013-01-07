@@ -297,6 +297,8 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
         if (errno == EINVAL)
           break;
         else {
+          /* TODO: Iconv::Failure */
+          free(result);
           mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
         }
       }
@@ -304,6 +306,8 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
     {
       size_t res = iconv(cd,NULL,NULL,&outptr,&outsize);
       if (res == (size_t)(-1)) {
+        /* TODO: Iconv::Failure */
+        free(result);
         mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
       }
     }
