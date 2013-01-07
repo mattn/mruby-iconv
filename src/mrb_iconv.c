@@ -1,9 +1,25 @@
 #include <mruby.h>
+#include <mruby/proc.h>
+#include <mruby/data.h>
 #include <mruby/string.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/variable.h>
 #include <iconv.h>
 #include <string.h>
 
 static struct RClass *_class_iconv;
+
+static void
+mrb_iconv_free(mrb_state *mrb, void *p) {
+  iconv_t cd = (iconv_t) p;
+  iconv_close(cd);
+}
+
+static const struct mrb_data_type mrb_iconv_type = {
+  "mrb_iconv", mrb_iconv_free,
+};
+
 
 #define tmpbufsize 4096
 
@@ -149,17 +165,8 @@ int iconv_string (const char* tocode, const char* fromcode,
   return 0;
 }
 
-static char
-nr2char(int n) {
-  if (0 <= n && n <= 9) {
-    return '0' + n;
-  } else {
-    return 'a' + n - 10;
-  }
-}
-
 static mrb_value
-mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
+mrb_iconv_conv(mrb_state *mrb, mrb_value self)
 {
   mrb_value to;
   mrb_value from;
@@ -186,10 +193,142 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
   return r;
 }
 
+static mrb_value
+mrb_iconv_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_value to;
+  mrb_value from;
+
+  mrb_get_args(mrb, "SS", &to, &from);
+  iconv_t cd = iconv_open(RSTRING_PTR(to), RSTRING_PTR(from));
+  if (cd == (iconv_t)(-1)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
+  }
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "cd"), mrb_obj_value(
+    Data_Wrap_Struct(mrb, mrb->object_class,
+      &mrb_iconv_type, (void*) cd)));
+  return self;
+}
+
+static mrb_value
+mrb_iconv_open(mrb_state *mrb, mrb_value self)
+{
+  mrb_value to;
+  mrb_value from;
+  mrb_value b = mrb_nil_value();
+
+  mrb_get_args(mrb, "|&SS", &b, &to, &from);
+  mrb_value argv[2];
+  argv[0] = to;
+  argv[1] = from;
+  mrb_value c = mrb_class_new_instance(mrb, 2, argv, _class_iconv);
+  if (!mrb_nil_p(b)) {
+    mrb_value args[1];
+    args[0] = c;
+    mrb_yield_argv(mrb, b, 1, args);
+    mrb_funcall(mrb, c, "close", 0, NULL);
+    return mrb_nil_value();
+  }
+
+  return c;
+}
+
+static mrb_value
+mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+  mrb_get_args(mrb, "S", &str);
+
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "cd"));
+  iconv_t cd;
+  Data_Get_Struct(mrb, value_context, &mrb_iconv_type, cd);
+
+  const char* start = RSTRING_PTR(str);
+  const char* end = RSTRING_PTR(str) + RSTRING_LEN(str);
+  size_t length;
+  char* result;
+
+  {
+    size_t count = 0;
+    char tmpbuf[tmpbufsize];
+    const char* inptr = start;
+    size_t insize = end-start;
+    while (insize > 0) {
+      char* outptr = tmpbuf;
+      size_t outsize = tmpbufsize;
+      size_t res = iconv(cd,&inptr,&insize,&outptr,&outsize);
+      if (res == (size_t)(-1) && errno != E2BIG) {
+        if (errno == EINVAL)
+          break;
+        else {
+          mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
+        }
+      }
+      count += outptr-tmpbuf;
+    }
+    {
+      char* outptr = tmpbuf;
+      size_t outsize = tmpbufsize;
+      size_t res = iconv(cd,NULL,NULL,&outptr,&outsize);
+      if (res == (size_t)(-1)) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
+      }
+      count += outptr-tmpbuf;
+    }
+    length = count;
+  }
+  if (length == 0) {
+    return mrb_str_new_cstr(mrb, "");
+  }
+  result = malloc(length);
+  if (result == NULL) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, strerror(ENOMEM));
+  }
+  iconv(cd,NULL,NULL,NULL,NULL); /* return to the initial state */
+  /* Do the conversion for real. */
+  {
+    const char* inptr = start;
+    size_t insize = end-start;
+    char* outptr = result;
+    size_t outsize = length;
+    while (insize > 0) {
+      size_t res = iconv(cd,&inptr,&insize,&outptr,&outsize);
+      if (res == (size_t)(-1)) {
+        if (errno == EINVAL)
+          break;
+        else {
+          mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
+        }
+      }
+    }
+    {
+      size_t res = iconv(cd,NULL,NULL,&outptr,&outsize);
+      if (res == (size_t)(-1)) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
+      }
+    }
+    if (outsize != 0) abort();
+  }
+  mrb_value r = mrb_str_new(mrb, result, length);
+  free(result);
+  return r;
+}
+
+static mrb_value
+mrb_iconv_close(mrb_state *mrb, mrb_value self)
+{
+  mrb_iv_set(mrb, self, mrb_intern(mrb, "cd"), mrb_nil_value());
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_iconv_gem_init(mrb_state* mrb) {
   _class_iconv = mrb_define_module(mrb, "Iconv");
-  mrb_define_class_method(mrb, _class_iconv, "iconv", mrb_iconv_iconv, ARGS_REQ(3));
+  mrb_define_class_method(mrb, _class_iconv, "conv", mrb_iconv_conv, ARGS_REQ(3));
+  mrb_define_class_method(mrb, _class_iconv, "open", mrb_iconv_open, ARGS_OPT(2));
+  mrb_define_method(mrb, _class_iconv, "initialize", mrb_iconv_init, ARGS_OPT(2));
+  mrb_define_method(mrb, _class_iconv, "iconv", mrb_iconv_iconv, ARGS_REQ(1));
+  mrb_define_method(mrb, _class_iconv, "close", mrb_iconv_close, ARGS_NONE());
 }
 
 /* vim:set et ts=2 sts=2 sw=2 tw=0: */
