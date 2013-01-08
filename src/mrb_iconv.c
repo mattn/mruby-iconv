@@ -8,8 +8,6 @@
 #include <iconv.h>
 #include <string.h>
 
-static struct RClass *_class_iconv;
-
 static void
 mrb_iconv_free(mrb_state *mrb, void *p) {
   iconv_t cd = (iconv_t) p;
@@ -221,6 +219,7 @@ mrb_iconv_open(mrb_state *mrb, mrb_value self)
   mrb_value argv[2];
   argv[0] = to;
   argv[1] = from;
+  struct RClass* _class_iconv = mrb_class_get(mrb, "Iconv");
   mrb_value c = mrb_class_new_instance(mrb, 2, argv, _class_iconv);
   if (!mrb_nil_p(b)) {
     mrb_value args[1];
@@ -327,7 +326,7 @@ mrb_iconv_close(mrb_state *mrb, mrb_value self)
 
 void
 mrb_mruby_iconv_gem_init(mrb_state* mrb) {
-  _class_iconv = mrb_define_module(mrb, "Iconv");
+  struct RClass* _class_iconv = mrb_define_module(mrb, "Iconv");
   mrb_define_class_method(mrb, _class_iconv, "conv", mrb_iconv_conv, ARGS_REQ(3));
   mrb_define_class_method(mrb, _class_iconv, "open", mrb_iconv_open, ARGS_OPT(2));
   mrb_define_method(mrb, _class_iconv, "initialize", mrb_iconv_init, ARGS_OPT(2));
