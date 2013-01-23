@@ -334,4 +334,8 @@ mrb_mruby_iconv_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, _class_iconv, "close", mrb_iconv_close, ARGS_NONE());
 }
 
+void
+mrb_mruby_iconv_gem_final(mrb_state* mrb) {
+}
+
 /* vim:set et ts=2 sts=2 sw=2 tw=0: */
