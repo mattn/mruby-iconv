@@ -170,11 +170,14 @@ mrb_iconv_conv(mrb_state *mrb, mrb_value self)
   mrb_value from;
   mrb_value str;
 
-  mrb_get_args(mrb, "SSS", &to, &from, &str);
-
   char* result = NULL;
   size_t length = 0;
-  int ret = iconv_string(
+  int ret;
+  mrb_value r;
+
+  mrb_get_args(mrb, "SSS", &to, &from, &str);
+
+  ret = iconv_string(
 	RSTRING_PTR(to),
 	RSTRING_PTR(from),
 	RSTRING_PTR(str),
@@ -186,7 +189,7 @@ mrb_iconv_conv(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
   }
 
-  mrb_value r = mrb_str_new(mrb, result, length);
+  r = mrb_str_new(mrb, result, length);
   free(result);
   return r;
 }
@@ -196,9 +199,10 @@ mrb_iconv_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value to;
   mrb_value from;
+  iconv_t cd;
 
   mrb_get_args(mrb, "SS", &to, &from);
-  iconv_t cd = iconv_open(RSTRING_PTR(to), RSTRING_PTR(from));
+  cd = iconv_open(RSTRING_PTR(to), RSTRING_PTR(from));
   if (cd == (iconv_t)(-1)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
   }
@@ -214,13 +218,15 @@ mrb_iconv_open(mrb_state *mrb, mrb_value self)
   mrb_value to;
   mrb_value from;
   mrb_value b = mrb_nil_value();
+  mrb_value argv[2];
+  struct RClass* _class_iconv;
+  mrb_value c;
 
   mrb_get_args(mrb, "|&SS", &b, &to, &from);
-  mrb_value argv[2];
   argv[0] = to;
   argv[1] = from;
-  struct RClass* _class_iconv = mrb_class_get(mrb, "Iconv");
-  mrb_value c = mrb_class_new_instance(mrb, 2, argv, _class_iconv);
+  _class_iconv = mrb_class_get(mrb, "Iconv");
+  c = mrb_class_new_instance(mrb, 2, argv, _class_iconv);
   if (!mrb_nil_p(b)) {
     mrb_value args[1];
     args[0] = c;
@@ -236,16 +242,21 @@ static mrb_value
 mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
 {
   mrb_value str;
-  mrb_get_args(mrb, "S", &str);
-
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "cd"));
+  mrb_value value_context;
   iconv_t cd;
-  Data_Get_Struct(mrb, value_context, &mrb_iconv_type, cd);
-
-  const char* start = RSTRING_PTR(str);
-  const char* end = RSTRING_PTR(str) + RSTRING_LEN(str);
+  const char* start;
+  const char* end;
   size_t length;
   char* result;
+  mrb_value r;
+
+  mrb_get_args(mrb, "S", &str);
+
+  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "cd"));
+  Data_Get_Struct(mrb, value_context, &mrb_iconv_type, cd);
+
+  start = RSTRING_PTR(str);
+  end = RSTRING_PTR(str) + RSTRING_LEN(str);
 
   {
     size_t count = 0;
@@ -312,7 +323,7 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
     }
     if (outsize != 0) abort();
   }
-  mrb_value r = mrb_str_new(mrb, result, length);
+  r = mrb_str_new(mrb, result, length);
   free(result);
   return r;
 }
