@@ -7,6 +7,7 @@
 #include <mruby/variable.h>
 #include <iconv.h>
 #include <string.h>
+#include <errno.h>
 
 static void
 mrb_iconv_free(mrb_state *mrb, void *p) {
