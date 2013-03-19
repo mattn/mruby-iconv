@@ -5,6 +5,7 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/variable.h>
+#include <stdlib.h>
 #include <iconv.h>
 #include <string.h>
 #include <errno.h>
