@@ -208,7 +208,7 @@ mrb_iconv_init(mrb_state *mrb, mrb_value self)
   if (cd == (iconv_t)(-1)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, strerror(errno));
   }
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "cd"), mrb_obj_value(
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "cd"), mrb_obj_value(
     Data_Wrap_Struct(mrb, mrb->object_class,
       &mrb_iconv_type, (void*) cd)));
   return self;
@@ -254,7 +254,7 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "S", &str);
 
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "cd"));
+  value_context = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, "cd"));
   Data_Get_Struct(mrb, value_context, &mrb_iconv_type, cd);
 
   start = RSTRING_PTR(str);
@@ -333,7 +333,7 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_iconv_close(mrb_state *mrb, mrb_value self)
 {
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "cd"), mrb_nil_value());
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "cd"), mrb_nil_value());
   return mrb_nil_value();
 }
 
