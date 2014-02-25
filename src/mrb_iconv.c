@@ -227,7 +227,7 @@ mrb_iconv_open(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "|&SS", &b, &to, &from);
   argv[0] = to;
   argv[1] = from;
-  _class_iconv = mrb_class_get(mrb, "Iconv");
+  _class_iconv = mrb_module_get(mrb, "Iconv");
   c = mrb_class_new_instance(mrb, 2, argv, _class_iconv);
   if (!mrb_nil_p(b)) {
     mrb_value args[1];
