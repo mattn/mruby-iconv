@@ -340,11 +340,11 @@ mrb_iconv_close(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_iconv_gem_init(mrb_state* mrb) {
   struct RClass* _class_iconv = mrb_define_module(mrb, "Iconv");
-  mrb_define_class_method(mrb, _class_iconv, "conv", mrb_iconv_conv, ARGS_REQ(3));
-  mrb_define_class_method(mrb, _class_iconv, "open", mrb_iconv_open, ARGS_OPT(2));
-  mrb_define_method(mrb, _class_iconv, "initialize", mrb_iconv_init, ARGS_OPT(2));
-  mrb_define_method(mrb, _class_iconv, "iconv", mrb_iconv_iconv, ARGS_REQ(1));
-  mrb_define_method(mrb, _class_iconv, "close", mrb_iconv_close, ARGS_NONE());
+  mrb_define_class_method(mrb, _class_iconv, "conv", mrb_iconv_conv, MRB_ARGS_REQ(3));
+  mrb_define_class_method(mrb, _class_iconv, "open", mrb_iconv_open, MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, _class_iconv, "initialize", mrb_iconv_init, MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, _class_iconv, "iconv", mrb_iconv_iconv, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, _class_iconv, "close", mrb_iconv_close, MRB_ARGS_NONE());
 }
 
 void
