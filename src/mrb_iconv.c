@@ -81,7 +81,7 @@ int iconv_string (const char* tocode, const char* fromcode,
   {
     size_t count = 0;
     char tmpbuf[tmpbufsize];
-    const char* inptr = start;
+    char* inptr = (char *)start;
     size_t insize = end-start;
     while (insize > 0) {
       char* outptr = tmpbuf;
@@ -119,7 +119,7 @@ int iconv_string (const char* tocode, const char* fromcode,
     iconv_close(cd);
     return 0;
   }
-  result = (*resultp == NULL ? malloc(length) : realloc(*resultp,length));
+  result = (char *)(*resultp == NULL ? malloc(length) : realloc(*resultp,length));
   *resultp = result;
   if (length == 0) {
     iconv_close(cd);
@@ -133,7 +133,7 @@ int iconv_string (const char* tocode, const char* fromcode,
   iconv(cd,NULL,NULL,NULL,NULL); /* return to the initial state */
   /* Do the conversion for real. */
   {
-    const char* inptr = start;
+    char* inptr = (char *)start;
     size_t insize = end-start;
     char* outptr = result;
     size_t outsize = length;
@@ -263,7 +263,7 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
   {
     size_t count = 0;
     char tmpbuf[tmpbufsize];
-    const char* inptr = start;
+    char* inptr = (char *)start;
     size_t insize = end-start;
     while (insize > 0) {
       char* outptr = tmpbuf;
@@ -292,14 +292,14 @@ mrb_iconv_iconv(mrb_state *mrb, mrb_value self)
   if (length == 0) {
     return mrb_str_new_cstr(mrb, "");
   }
-  result = malloc(length);
+  result = (char *)malloc(length);
   if (result == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, strerror(ENOMEM));
   }
   iconv(cd,NULL,NULL,NULL,NULL); /* return to the initial state */
   /* Do the conversion for real. */
   {
-    const char* inptr = start;
+    char* inptr = (char *)start;
     size_t insize = end-start;
     char* outptr = result;
     size_t outsize = length;
